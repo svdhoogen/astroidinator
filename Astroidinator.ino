@@ -12,9 +12,9 @@ Timer tmrGameShoo; // Define timer to tick.
 #define diJoyPressShoo  2   // Define button on joystick.
 #define doBuzzerShoo    3   // Define buzzer to corresponding pin.
 
-int iCursorPositionShoo[2] = {15, 1}; // Where cursor is positioned.
+int iCursorPositionShoo[] = {15, 1}; // Where cursor is positioned.
 int iCurrentGameScreenShoo = 0; // Default screen is start game, 1 = difficulty, 2 = enter name, 3 = game, 4 = post-game, 5 = highscore.
-int iCursorBoundsYSlin[2] = {1, 2}; // Cursor boundaries for y.
+int iCursorBoundsYSlin[] = {1, 2}; // Cursor boundaries for y.
 int iGameDifficulty = 0; // Game difficulty.
 
 unsigned int uiGameTimerStartShoo = 0;
@@ -197,8 +197,19 @@ void MethodDisplayLayoutShoo() {
 }
 
 void MethodRunGameLogicShoo() {
-  int m_iTimeLeftShoo = 300 - ((millis() - uiGameTimerStartShoo) / 1000);
-  MethodWriteToLcdShoo(17, 3, String(m_iTimeLeftShoo));
+  int m_iTimeLeftShoo = 10 - ((millis() - uiGameTimerStartShoo) / 1000);
+  String m_sTimeLeftShoo = String(m_iTimeLeftShoo);
+  while(m_sTimeLeftShoo.length() < 3) {
+    m_sTimeLeftShoo = " " + m_sTimeLeftShoo;
+  }
+  MethodWriteToLcdShoo(17, 3, m_sTimeLeftShoo);
+  
+  if (m_iTimeLeftShoo <= 0) {
+    tmrGameShoo.stop();
+    iCursorPositionShoo[1] = 1;
+    iCurrentGameScreenShoo = 4;
+    MethodDisplayLayoutShoo();
+  }
 }
 
 // Method that prints a string to specific place on Lcd, where x val is place on row, y is colomn and lcdString is string to be printed.
