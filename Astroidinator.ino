@@ -16,13 +16,19 @@ int iCursorPositionShoo[] = {15, 1}; // Where cursor is positioned.
 int iCurrentGameScreenShoo = 0; // Default screen is start game, 1 = difficulty, 2 = enter name, 3 = game, 4 = post-game, 5 = highscore.
 int iCursorBoundsYSlin[] = {1, 2}; // Cursor boundaries for y.
 int iGameDifficulty = 0; // Game difficulty.
+int iEntityPositionsShoo[] = {
+  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+  }; // Defines entities on playfield, 0 = nothing, 1 = space ships, 2 = asteroids.
 
-unsigned int uiGameTimerStartShoo = 0;
+unsigned long uiGameTimerStartShoo = 0;
 
 void setup() {
   pinMode(diJoyPressShoo, INPUT); // Initialize joystick button.
   pinMode(doBuzzerShoo, OUTPUT); // Set buzzer output.
   digitalWrite(diJoyPressShoo, HIGH); // Write joystick button high(default, unpressed value is high).
+  randomSeed(analogRead(0));
   
   Serial.begin(115200); // Open serial console.
   lcd4x20Shoo.init();
@@ -99,13 +105,13 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
         Serial.println("Starting game!");
       }
       else {
-        iCurrentGameScreenShoo = 4;
+        iCurrentGameScreenShoo = 5;
         Serial.println("Displaying highscores...");
       }
 
       MethodDisplayLayoutShoo();
     }
-    else {
+    else if (a_iJoyShoo < 3) {
       MethodUpdateCursorSlin(a_iJoyShoo, 1);
     }
   }
@@ -116,7 +122,7 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
       Serial.println("Difficulty is: " + String(iGameDifficulty));
       MethodDisplayLayoutShoo();
     }
-    else {
+    else if (a_iJoyShoo < 3) {
       MethodUpdateCursorSlin(a_iJoyShoo, 0);
     }
   }
@@ -124,24 +130,37 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
     
   }
   else if (iCurrentGameScreenShoo == 3) {
-    
+    if (a_iJoyShoo == 0) {
+      
+    }
+    else {
+      MethodUpdateCursorSlin(a_iJoyShoo, 0);
+    }
   }
   else if (iCurrentGameScreenShoo == 4) {
+    
+  }
+  else if (iCurrentGameScreenShoo == 5) {
     
   }
 }
 
 void MethodUpdateCursorSlin(int a_iJoyDirectionShoo, int a_iBoundaryLowerSlin) {
+  MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], " ");
+  
   if (a_iJoyDirectionShoo == 1 && iCursorPositionShoo[1] < 2) {
-    MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], " ");
     iCursorPositionShoo[1]++;
-    MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "<");
   }
   else if (a_iJoyDirectionShoo == 2 && iCursorPositionShoo[1] > a_iBoundaryLowerSlin) {
-    MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], " ");
     iCursorPositionShoo[1]--;
-    MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "<");
   }
+  else if(a_iJoyDirectionShoo == 3 && iCursorPositionShoo[0] < 19) {
+    iCursorPositionShoo[0]++;
+  }
+  else if(a_iJoyDirectionShoo == 4 && iCursorPositionShoo[0] > 0) {
+    iCursorPositionShoo[0]--;
+  }
+  MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "=");
 }
 
 void MethodDisplayLayoutShoo() {
@@ -150,15 +169,15 @@ void MethodDisplayLayoutShoo() {
   if (iCurrentGameScreenShoo == 0) {
     MethodWriteToLcdShoo(4, 1, "Start game");
     MethodWriteToLcdShoo(4, 2, "Highscores");
-    MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "<");
+    MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "=");
   }
   else if (iCurrentGameScreenShoo == 1) {
-    iCursorPositionShoo[0] = 19;
-    iCursorPositionShoo[1] = 0;
-    MethodWriteToLcdShoo(0, 0, "Recruit");
-    MethodWriteToLcdShoo(0, 1, "Regular");
-    MethodWriteToLcdShoo(0, 2, "Veteran");
-    MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "<");
+    iCursorPositionShoo[0] = 15;
+    iCursorPositionShoo[1] = 1;
+    MethodWriteToLcdShoo(4, 0, "Recruit");
+    MethodWriteToLcdShoo(4, 1, "Regular");
+    MethodWriteToLcdShoo(4, 2, "Veteran");
+    MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "=");
   }
   else if (iCurrentGameScreenShoo == 2) {
     MethodWriteToLcdShoo(4, 1, "Enter name!");
@@ -176,9 +195,12 @@ void MethodDisplayLayoutShoo() {
     MethodWriteToLcdShoo(0, 3, "--------------------");
     delay(1000);
     lcd4x20Shoo.clear();
+    iCursorPositionShoo[0] = 19;
+    iCursorPositionShoo[1] = 1;
+    MethodUpdateCursorSlin(-1, 0); // Pass along -1, so it'll just update position.
     MethodWriteToLcdShoo(0, 3, "*=000 >=000 s000 300");
     uiGameTimerStartShoo = millis(); // Set start time to current time.
-    tmrGameShoo.start();
+    tmrGameShoo.start(); // Comence game logic.
   }
   else if (iCurrentGameScreenShoo == 4) {
     MethodWriteToLcdShoo(1, 1, "Endgame screen.");
@@ -197,15 +219,56 @@ void MethodDisplayLayoutShoo() {
 }
 
 void MethodRunGameLogicShoo() {
-  int m_iTimeLeftShoo = 10 - ((millis() - uiGameTimerStartShoo) / 1000);
+  int m_iTimeLeftShoo = 300 - ((millis() - uiGameTimerStartShoo) / 1000);
   String m_sTimeLeftShoo = String(m_iTimeLeftShoo);
   while(m_sTimeLeftShoo.length() < 3) {
     m_sTimeLeftShoo = " " + m_sTimeLeftShoo;
   }
+
+  int m_iRandomNumShoo = random(0,3);
+
+  for(int m_iLineCellShoo = 59; m_iLineCellShoo >= 0; m_iLineCellShoo--) {
+    if (iEntityPositionsShoo[m_iLineCellShoo] > 0) {
+      // FOr some reason this if statement doesn't stop entities from crossing over to next line, fix tomorrow.
+      if (m_iLineCellShoo != 19 || m_iLineCellShoo != 39 || m_iLineCellShoo != 59) {
+        iEntityPositionsShoo[m_iLineCellShoo + 1] = iEntityPositionsShoo[m_iLineCellShoo];
+        
+        int m_iXvalShoo = m_iLineCellShoo + 1;
+        int m_iYvalShoo = 0;
+      
+        while (m_iXvalShoo > 19) {
+          m_iXvalShoo = m_iXvalShoo - 20;
+          m_iYvalShoo++;
+        }
+        
+        if (iEntityPositionsShoo[m_iLineCellShoo + 1] == 1) {
+          MethodWriteToLcdShoo(m_iXvalShoo, m_iYvalShoo, ">");
+        }
+        else {
+          MethodWriteToLcdShoo(m_iXvalShoo, m_iYvalShoo, "*");
+        }
+      }
+      
+      iEntityPositionsShoo[m_iLineCellShoo] = 0;
+
+      int m_iXvalShoo = m_iLineCellShoo;
+      int m_iYvalShoo = 0;
+      
+      while (m_iXvalShoo > 19) {
+        m_iXvalShoo = m_iXvalShoo - 20;
+        m_iYvalShoo++;
+      }
+
+      MethodWriteToLcdShoo(m_iXvalShoo, m_iYvalShoo, " ");
+    }
+  }
+  
   MethodWriteToLcdShoo(17, 3, m_sTimeLeftShoo);
+  MethodUpdateCursorSlin(-1, 0); // Pass along -1, so it'll just update position.
   
   if (m_iTimeLeftShoo <= 0) {
     tmrGameShoo.stop();
+    iCursorPositionShoo[0] = 15;
     iCursorPositionShoo[1] = 1;
     iCurrentGameScreenShoo = 4;
     MethodDisplayLayoutShoo();
