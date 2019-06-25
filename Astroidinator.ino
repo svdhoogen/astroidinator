@@ -25,6 +25,7 @@ Timer tmrGameShoo; // Define timer to tick.
 
 int iAstroidCountSlin = 0; // Astroids user has collected.
 int iSpaceShipCountSlin = 0; // Spaceships user has crashed into.
+bool bPreviousBtnStateSlin = 0; // Previous state of joystick button.
 int iCurrentGameScreenShoo = 0; // Default screen is start game, 1 = difficulty, 2 = enter name, 3 = game, 4 = post-game, 5 = highscore.
 int iCursorBoundsYSlin[] = {1, 2}; // Cursor boundaries for y.
 int iDifficultylevelShoo = 14; // Define upper boundary for spaceship generation, which determines difficulty.
@@ -44,11 +45,11 @@ void setup() {
   randomSeed(analogRead(0));
   
   Serial.begin(115200); // Open serial console.
-  lcd4x20Shoo.init(); //Initialise the lcd
-  lcd4x20Shoo.setBacklight(1); //Set the basic backlight for the lcd
-  lcd4x20Shoo.clear(); //clear the lcd
+  lcd4x20Shoo.init(); // Initialise lcd.
+  lcd4x20Shoo.setBacklight(1); // Enable backlight for bright screen.
+  lcd4x20Shoo.clear(); // Clear lcd.
 
-  //Startup information
+  // Print startup info.
   MethodWriteToLcdShoo(0, 0, "Astroidinator! V1.0");
   MethodWriteToLcdShoo(0, 1, "Made by: Stijn");
   MethodWriteToLcdShoo(0, 2, "Lingmont & Sander vd");
@@ -57,24 +58,16 @@ void setup() {
   
   MethodDisplayLayoutShoo(); // Print start game logic.
 
-  // The timer will repeat every 400 ms
-  tmrInputsShoo.setInterval(400); 
-
-  // The function to be called
-  tmrInputsShoo.setCallback(MethodReadJoystickShoo);
-
-  // Start the timer
-  tmrInputsShoo.start();
-
-  // The timer will repeat every 1000 ms
-  tmrGameShoo.setInterval(1000); 
-
-  // The function to be called
-  tmrGameShoo.setCallback(MethodRunGameLogicShoo);
+  tmrInputsShoo.setInterval(200); // The timer will repeat every 400 ms
+  tmrInputsShoo.setCallback(MethodReadJoystickShoo); // The function to be called
+  tmrInputsShoo.start(); // Start the timer
+  
+  tmrGameShoo.setInterval(1000); // The timer will repeat every 1000 ms
+  tmrGameShoo.setCallback(MethodRunGameLogicShoo); // The function to be called
 }
 
 void loop() {
-  //Update the timers
+  //Update the timers.
   tmrInputsShoo.update();
   tmrGameShoo.update();
 }
@@ -87,9 +80,14 @@ void MethodReadJoystickShoo() {
   delay(10); // Debounce.
   int m_joyBtnPress2Shoo = digitalRead(diJoyPressShoo); // Button press.
 
-  if(m_joyBtnPressShoo == m_joyBtnPress2Shoo && m_joyBtnPressShoo == 0) {
+  // Button debounce.
+  if(m_joyBtnPressShoo == m_joyBtnPress2Shoo && m_joyBtnPressShoo == 0 && bPreviousBtnStateSlin == 0) {
     Serial.println("Button pressed...");
     MethodHandleInputsShoo(0);
+    bPreviousBtnStateSlin = 1;
+  }
+  else if(m_joyBtnPressShoo == 0 && bPreviousBtnStateSlin == 1) {
+    bPreviousBtnStateSlin = 0;
   }
 
   if (m_joyYvalShoo > 600) {
@@ -111,18 +109,16 @@ void MethodReadJoystickShoo() {
   }
 }
 
-//Actions based on the inputs of the joystick
+// Handles joystick inputs.
 void MethodHandleInputsShoo(int a_iJoyShoo) {
+  // If on first gamescreen, only process joystick click and up/down.
   if (iCurrentGameScreenShoo == 0) {
-    //Startup menu
     if (a_iJoyShoo == 0) {
       if (iCursorPositionShoo[1] == 1) {
-        //Start game
         iCurrentGameScreenShoo = 1;
         Serial.println("Starting game!");
       }
       else {
-        //Dislay highscores
         iCurrentGameScreenShoo = 5;
         Serial.println("Displaying highscores...");
       }
@@ -132,8 +128,8 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
       MethodUpdateCursorSlin(a_iJoyShoo, 1);
     }
   }
+  // If on second gamescreen, only process joystick click and up/down.
   else if (iCurrentGameScreenShoo == 1) {
-    //Difficulty menu
     if (a_iJoyShoo == 0) {
       //Set difficulty of the game by defining upper boundary for spaceship generation, increasing spaceship frequency.
       iDifficultylevelShoo = 14 - iCursorPositionShoo[1];
@@ -146,28 +142,24 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
     }
   }
   else if (iCurrentGameScreenShoo == 2) {
-    //Enter name menu
+    // Enter name menu (WIP).
   }
+  // If on fourth gamescreen, process all buttons(except click WIP.).
   else if (iCurrentGameScreenShoo == 3) {
-    if (a_iJoyShoo == 0) {
-      //game
-    }
-    else {
+    if (a_iJoyShoo != 0) {
       MethodUpdateCursorSlin(a_iJoyShoo, 0);
     }
   }
+  // If on second gamescreen, only process joystick click and up/down.
   else if (iCurrentGameScreenShoo == 4) {
-    //post-game screen
     if (a_iJoyShoo == 0) {
       if (iCursorPositionShoo[1] == 1) {
-        // Go to start screen.
         iCurrentGameScreenShoo = 3;
-        Serial.println("Starting new game!");
+        Serial.println("Starting new game!"); // Debug info.
       }
       else {
-        //Dislay highscores
         iCurrentGameScreenShoo = 0;
-        Serial.println("Going back to start screen.");
+        Serial.println("Going back to start screen."); // Debug info.
       }
       MethodDisplayLayoutShoo();
     }
@@ -176,29 +168,29 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
     }
   }
   else if (iCurrentGameScreenShoo == 5) {
-    //highscores
+    // Highscores (WIP).
   }
 }
 
-//Update the cursor based on the movement of the joystick
+// Update the cursor based on joystick input.
 void MethodUpdateCursorSlin(int a_iJoyDirectionShoo, int a_iBoundaryLowerSlin) {
-  MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], " "); //Clear last cel
+  MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], " "); // Clear out cursor.
 
-  //Check which direction the cursor needs to go
+  // Check in which direction cursor is moving.
   if (a_iJoyDirectionShoo == 1 && iCursorPositionShoo[1] < 2) {
-    iCursorPositionShoo[1]++;
+    iCursorPositionShoo[1]++; // Moving up
   }
   else if (a_iJoyDirectionShoo == 2 && iCursorPositionShoo[1] > a_iBoundaryLowerSlin) {
-    iCursorPositionShoo[1]--;
+    iCursorPositionShoo[1]--; // Moving down.
   }
   else if(a_iJoyDirectionShoo == 3 && iCursorPositionShoo[0] < 19) {
-    iCursorPositionShoo[0]++;
+    iCursorPositionShoo[0]++; // Moving left
   }
   else if(a_iJoyDirectionShoo == 4 && iCursorPositionShoo[0] > 0) {
-    iCursorPositionShoo[0]--;
+    iCursorPositionShoo[0]--; // Moving right.
   }
   
-  MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "="); //Set cursor on new cel
+  MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "="); // Print cursor to display.
   
   // Run collision detection if currently playing game.
   if(iCurrentGameScreenShoo == 3) {
@@ -206,43 +198,43 @@ void MethodUpdateCursorSlin(int a_iJoyDirectionShoo, int a_iBoundaryLowerSlin) {
   }
 }
 
-//Base layout for every game screen
+// Base layout for each game screen.
 void MethodDisplayLayoutShoo() {
-  lcd4x20Shoo.clear(); //Clear lcd
-  Serial.println("Displaying gamescreen: " + String(iCurrentGameScreenShoo));
+  lcd4x20Shoo.clear(); //Clear lcd, in preperation for new elements.
+  Serial.println("Displaying gamescreen: " + String(iCurrentGameScreenShoo)); // Debug info.
   
+  // Startup menu.
   if (iCurrentGameScreenShoo == 0) {
-    //Startup menu
-    iCursorPositionShoo[0] = 15;
     MethodWriteToLcdShoo(4, 1, "Start game");
     MethodWriteToLcdShoo(4, 2, "Highscores");
+    iCursorPositionShoo[0] = 15;
     MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "=");
   }
+  // Difficulty menu.
   else if (iCurrentGameScreenShoo == 1) {
-    //Difficulty menu
-    iCursorPositionShoo[0] = 15;
-    iCursorPositionShoo[1] = 1;
     MethodWriteToLcdShoo(4, 0, "Recruit");
     MethodWriteToLcdShoo(4, 1, "Regular");
     MethodWriteToLcdShoo(4, 2, "Veteran");
+    iCursorPositionShoo[0] = 15;
+    iCursorPositionShoo[1] = 1;
     MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "=");
   }
+  // Enter name menu (WIP).
   else if (iCurrentGameScreenShoo == 2) {
-    //enter name menu
     MethodWriteToLcdShoo(4, 1, "Enter name!");
     delay(1000);
     iCurrentGameScreenShoo++;
     MethodDisplayLayoutShoo();
   }
+  // Game screen.
   else if (iCurrentGameScreenShoo == 3) {
-    //game
-    // Clears all entities from gamelogic.
+    // Clears all entities from entity arrays.
     for(int m_iLoopCountSlin = 0; m_iLoopCountSlin < 60; m_iLoopCountSlin++) {
       iEntityPositionsShoo[m_iLoopCountSlin] = 0;
     }
     
-    int iAstroidCountSlin = 0; // Astroids user has collected.
-    int iSpaceShipCountSlin = 0; // Spaceships user has crashed into.
+    iAstroidCountSlin = 0; // Reset astroids user has collected.
+    iSpaceShipCountSlin = 0; // Reset spaceships user has crashed into.
     
     MethodWriteToLcdShoo(0, 0, "--------------------");
     MethodWriteToLcdShoo(0, 1, "|");
@@ -251,6 +243,8 @@ void MethodDisplayLayoutShoo() {
     MethodWriteToLcdShoo(19, 1, "|");
     MethodWriteToLcdShoo(19, 2, "|");
     MethodWriteToLcdShoo(0, 3, "--------------------");
+
+    // Play audio tune.
     MethodBuzzerShoo(250, 100);
     delay(50);
     MethodBuzzerShoo(350, 100);
@@ -265,19 +259,20 @@ void MethodDisplayLayoutShoo() {
     delay(25);
     MethodBuzzerShoo(400, 100);
     delay(300);
-    lcd4x20Shoo.clear();
+    
+    lcd4x20Shoo.clear(); // Clear lcd
     iCursorPositionShoo[0] = 19;
     iCursorPositionShoo[1] = 1;
-    MethodUpdateCursorSlin(-1, 0); // Pass along -1, so it'll just update position.
-    MethodWriteToLcdShoo(0, 3, "*=000 >=000 s000 300");
+    MethodUpdateCursorSlin(-1, 0); // Pass along -1, so it'll just redraw cursor.
+    MethodWriteToLcdShoo(0, 3, "*=000 >=000 s000 300"); // Scoreboard elements.
     uiGameTimerStartShoo = millis(); // Set start time to current time.
     tmrGameShoo.start(); // Comence game logic.
   }
+  // Post-game menu.
   else if (iCurrentGameScreenShoo == 4) {
-    //post-game menu.
-    // User has lost.
-    MethodWriteToLcdShoo(1, 2, "Your score was " + String(MethodString3CharsSlin(iAstroidCountSlin - iSpaceShipCountSlin)));
+    MethodWriteToLcdShoo(1, 2, "Your score was " + String(MethodIntToString3Slin(iAstroidCountSlin - iSpaceShipCountSlin))); // Print gotten score to screen.
     
+    // User has lost, play lost sound and print You have lost! for ~2 seconds.
     if (iAstroidCountSlin - iSpaceShipCountSlin < 0) {
       MethodWriteToLcdShoo(3, 1,"You have lost!");
       MethodBuzzerShoo(1000, 100);
@@ -295,7 +290,7 @@ void MethodDisplayLayoutShoo() {
       MethodBuzzerShoo(50, 100);
       delay(50);
     }
-    // User has won.
+    // User has won, play won sound and print You have won! for ~2 seconds.
     else {
       MethodWriteToLcdShoo(3, 1 ,"You have won!");
       MethodBuzzerShoo(50, 100);
@@ -314,7 +309,7 @@ void MethodDisplayLayoutShoo() {
       delay(10);
     }
     delay(2000);
-    lcd4x20Shoo.clear();
+    lcd4x20Shoo.clear(); // Clear screen, update cursor and print new dialogue.
     
     iCursorBoundsYSlin[0] = 1;
     iCursorPositionShoo[0] = 11;
@@ -323,8 +318,8 @@ void MethodDisplayLayoutShoo() {
     MethodWriteToLcdShoo(7, 1,"Yes =");
     MethodWriteToLcdShoo(7, 2,"No");
   }
+  // Highscores menu.
   else if (iCurrentGameScreenShoo == 5) {
-    //highscores menu
     MethodWriteToLcdShoo(1, 1, "Highscores.");
     MethodWriteToLcdShoo(1, 2, "Work in progress.");
     delay(1000);
@@ -333,24 +328,26 @@ void MethodDisplayLayoutShoo() {
   }
 }
 
-//Game logics for within the game when started
+// Logic that will run every seconds, to perform logic for game when it is in progress.
 void MethodRunGameLogicShoo() {
+  // For loop that will run through array and move each entity one step to the left, except if it goes of the screen, then it deletes entity.
   for(int m_iLineCellShoo = 59; m_iLineCellShoo >= 0; m_iLineCellShoo--) {
+    // If an entity is in current array position, move it.
     if (iEntityPositionsShoo[m_iLineCellShoo] > 0) {
-      //Movement of the astroids and spaceships
+      // If the entity isn't at the edge of screen, move it one spot over and print it's new location to screen.
       if (m_iLineCellShoo != 19 && m_iLineCellShoo != 39 && m_iLineCellShoo != 59) {
-        iEntityPositionsShoo[m_iLineCellShoo + 1] = iEntityPositionsShoo[m_iLineCellShoo]; //Replace position of entitiy to the right within the array
+        iEntityPositionsShoo[m_iLineCellShoo + 1] = iEntityPositionsShoo[m_iLineCellShoo]; // Moves current entity one spot over.
         
-        int m_iXvalShoo = m_iLineCellShoo + 1; //X coordinate of the spaceship/astroid
-        int m_iYvalShoo = 0; //Y coordinate of the spaceship/astroid
+        int m_iXvalShoo = m_iLineCellShoo + 1; // X coordinate entity on screen.
+        int m_iYvalShoo = 0; // Y coordinate of entity.
 
-        //spaceship/astroid will begin again one row beneath his last when reaching the end of the screen
+        // Converts array value back to display coordinates.
         while (m_iXvalShoo > 19) {
           m_iXvalShoo = m_iXvalShoo - 20;
           m_iYvalShoo++;
         }
 
-        //Write the character sprite of the astroid or spaceship to the LCD
+        // If entity is spaceship, print ">" to it's calculated location on display, else print asteroid.
         if (iEntityPositionsShoo[m_iLineCellShoo + 1] == 1) {
           MethodWriteToLcdShoo(m_iXvalShoo, m_iYvalShoo, ">");
         }
@@ -359,45 +356,50 @@ void MethodRunGameLogicShoo() {
         }
       }
       
-      iEntityPositionsShoo[m_iLineCellShoo] = 0; //Position of the entity
+      iEntityPositionsShoo[m_iLineCellShoo] = 0; // Clear last location of entity, where it no longer is supposed to be.
 
-      int m_iXvalShoo = m_iLineCellShoo; //X coordinate of the spaceship/astroid
-      int m_iYvalShoo = 0; //Y coordinate of the spaceship/astroid
+      int m_iXvalShoo = m_iLineCellShoo; // X coordinate entity on screen.
+      int m_iYvalShoo = 0; // Y coordinate of entity.
       
-      //spaceship/astroid will begin again one row beneath his last when reaching the end of the screen
+      // Converts array value back to display coordinates.
       while (m_iXvalShoo > 19) {
         m_iXvalShoo = m_iXvalShoo - 20;
         m_iYvalShoo++;
       }
 
-      MethodWriteToLcdShoo(m_iXvalShoo, m_iYvalShoo, " "); //Remove last character sprite
+      MethodWriteToLcdShoo(m_iXvalShoo, m_iYvalShoo, " "); // Remove previous entity from display.
     }
   }
 
-  int m_iRandomEntityShoo[] = {random(0, 16), random(0, 16), random(0, 16)};
-  
+  int m_iRandomEntityShoo[] = {random(0, 16), random(0, 16), random(0, 16)}; // Create 3 random int's in array for entity spawning.
+
+  // Go through this array and check whether the random number corresponds to an asteroid or spaceship, and if it does add the entity to the beginning of entity position array.
   for(int m_iLoopCountShoo = 0; m_iLoopCountShoo < 3; m_iLoopCountShoo++) {
+    // Check if current random num is higher then difficulty level, which is either 12, 13 or 14, and if it is the random entity is a spaceship.
     if (m_iRandomEntityShoo[m_iLoopCountShoo] > iDifficultylevelShoo) {
-      iEntityPositionsShoo[m_iLoopCountShoo * 20] = 1;
-      MethodWriteToLcdShoo(0, m_iLoopCountShoo, ">");
+      iEntityPositionsShoo[m_iLoopCountShoo * 20] = 1; // Add spaceship to it's corresponding location in entity array, which is the position in array * 20.
+      MethodWriteToLcdShoo(0, m_iLoopCountShoo, ">"); // Print spaceship to display.
     }
+    // See above for comments.
     else if (m_iRandomEntityShoo[m_iLoopCountShoo] > iDifficultylevelShoo - 2) {
       iEntityPositionsShoo[m_iLoopCountShoo * 20] = 2;
       MethodWriteToLcdShoo(0, m_iLoopCountShoo, "*");
     }
   }
 
-  // If a wall of enemies has been generated, remove random enemy.
+  // If a wall of enemies has been generated, remove random enemy from array and screen so that user is always able to dodge new row.
   if (iEntityPositionsShoo[0] == 1 && iEntityPositionsShoo[20] == 1 && iEntityPositionsShoo[40] && 1) {
-    iEntityPositionsShoo[random(0, 3) * 20] = 0;
+    int m_iRandomEntityShoo = random(0, 3) * 20;
+    iEntityPositionsShoo[m_iRandomEntityShoo] = 0;
+    MethodWriteToLcdShoo(0, m_iRandomEntityShoo, "*");
   }
   
-  MethodUpdateCursorSlin(-1, 0); // Pass along -1, so it'll just redraw cursor position.
-  MethodColisionDetectionSlin(); // Check if updated positions has caused a collision, and update scoreboard if it has.
+  MethodUpdateCursorSlin(-1, 0); // Pass along -1, so it'll just redraw cursor position, otherwise if player collides with entity entity will take priority which isn't supposed to happen.
+  MethodColisionDetectionSlin(); // Check for collisions.
   int m_iTimeLeftShoo = 300 - ((millis() - uiGameTimerStartShoo) / 1000); // Calculate time.
-  MethodWriteToLcdShoo(17, 3, MethodString3CharsSlin(m_iTimeLeftShoo)); // Update time.
+  MethodWriteToLcdShoo(17, 3, MethodIntToString3Slin(m_iTimeLeftShoo)); // Update time.
 
-  // Time is up, so go to endgame screen.
+  // Time is up, so perform logic for and go to endgame screen.
   if (m_iTimeLeftShoo <= 0) {
     tmrGameShoo.stop();
     iCursorPositionShoo[0] = 15;
@@ -407,69 +409,76 @@ void MethodRunGameLogicShoo() {
   }
 }
 
+// Method that will detect whether cursor(so player) has collided with an entity, if it has, remove entity, play sound and update various scores accordingly.
 void MethodColisionDetectionSlin() {
-  int m_iCursorArrayPosition = iCursorPositionShoo[0] + iCursorPositionShoo[1] * 20; // Convert cursor position to array position.
+  int m_iCursorArrayPositionSlin = iCursorPositionShoo[0] + iCursorPositionShoo[1] * 20; // Convert cursor position to array position, x val + y * 20 val.
 
-  // If cursor collides with an entity, add 1 to entity count, remove entity from array and update score in bottom of screen.
-  if(iEntityPositionsShoo[m_iCursorArrayPosition] > 0) {
-    if (iEntityPositionsShoo[m_iCursorArrayPosition] == 1) {
+  // If cursor collides with an entity, add 1 to corresponding entity count, remove entity from array, play sound and update scores in bottom of screen.
+  if(iEntityPositionsShoo[m_iCursorArrayPositionSlin] > 0) {
+    // Player has hit a spaceship.
+    if (iEntityPositionsShoo[m_iCursorArrayPositionSlin] == 1) {
       iSpaceShipCountSlin++;
-      MethodWriteToLcdShoo(8, 3, MethodString3CharsSlin(iSpaceShipCountSlin)); // Update spaceship scoreboard.
+      MethodWriteToLcdShoo(8, 3, MethodIntToString3Slin(iSpaceShipCountSlin)); // Update spaceship scoreboard.
       MethodBuzzerShoo(400, 100);
       delay(10);
       MethodBuzzerShoo(200, 100);
     }
-    else if (iEntityPositionsShoo[m_iCursorArrayPosition] == 2) {
+    // Player has hit an astroid.
+    else if (iEntityPositionsShoo[m_iCursorArrayPositionSlin] == 2) {
       iAstroidCountSlin++;
-      MethodWriteToLcdShoo(2, 3, MethodString3CharsSlin(iAstroidCountSlin)); // Update asteroid scoreboard.
+      MethodWriteToLcdShoo(2, 3, MethodIntToString3Slin(iAstroidCountSlin)); // Update asteroid scoreboard.
       MethodBuzzerShoo(500, 100);
       delay(10);
       MethodBuzzerShoo(750, 100);
     }
 
-    iEntityPositionsShoo[m_iCursorArrayPosition] = 0; // Remove entity from game.
+    iEntityPositionsShoo[m_iCursorArrayPositionSlin] = 0; // Remove entity from game.
     int m_iPlayerScoreSlin = iAstroidCountSlin - iSpaceShipCountSlin; // Calculate score by subtracting spaceships from asteroids.
 
-    // Score can't be negative, so if it is, just print a score of 0, else print score.
+    // Score can't be negative, so if it is, just print a score of 0, else print calculated score.
     if(m_iPlayerScoreSlin < 0) {
       MethodWriteToLcdShoo(13, 3, "000");
     }
     else {
-      MethodWriteToLcdShoo(13, 3, MethodString3CharsSlin(m_iPlayerScoreSlin));
+      MethodWriteToLcdShoo(13, 3, MethodIntToString3Slin(m_iPlayerScoreSlin));
     }
   }
 }
 
-String MethodString3CharsSlin(int a_iScoreboardValSlin) {
-  String m_sScoreboardStringSlin = String(a_iScoreboardValSlin);
-  while(m_sScoreboardStringSlin.length() < 3) {
-    m_sScoreboardStringSlin = "0" + m_sScoreboardStringSlin;
+// Method that will convert an integer to a string and make sure it has length of 3, otherwise adds 0's to string until it fits desired length, then returns converted string.
+String MethodIntToString3Slin(int a_iConvertIntSlin) {
+  String m_sConvertedStringSlin = String(a_iConvertIntSlin); // Convert to string.
+  
+  while(m_sConvertedStringSlin.length() < 3) {
+    m_sConvertedStringSlin = "0" + m_sConvertedStringSlin;
   }
 
-  return m_sScoreboardStringSlin; // Return 3 length String.
+  return m_sConvertedStringSlin; // Return 3 length String.
 }
 
-// Method that prints a string to specific place on Lcd, where x val is place on row, y is colomn and lcdString is string to be printed.
-void MethodWriteToLcdShoo(int a_valX, int a_valY, String a_sLcdString) {
-  lcd4x20Shoo.setCursor(a_valX, a_valY); // Set lcd to given values.
+// Method that prints passed string to position on lcd, determined by PosX and PosY.
+void MethodWriteToLcdShoo(int a_iPosXSlin, int a_iPosYSlin, String a_sLcdStringSlin) {
+  lcd4x20Shoo.setCursor(a_iPosXSlin, a_iPosYSlin); // Set lcd to given values.
   
   //Print string that is given within the method
-  for(int m_stringIndex = 0; m_stringIndex < a_sLcdString.length(); m_stringIndex++)
+  for(int m_iStringIndexSlin = 0; m_iStringIndexSlin < a_sLcdStringSlin.length(); m_iStringIndexSlin++)
   {
-    lcd4x20Shoo.print(a_sLcdString[m_stringIndex]);
+    lcd4x20Shoo.print(a_sLcdStringSlin[m_iStringIndexSlin]);
   }
 }
 
 // Method playing sound through buzzer, found on internet, source provided below. Code used from 274 to 290 with minor tweaks.
 // https://create.arduino.cc/projecthub/jrance/super-mario-theme-song-w-piezo-buzzer-and-arduino-1cc2e4?ref=search&ref_id=buzzer&offset=5
-void MethodBuzzerShoo(long locFrequency, long locMLength) {
-  Serial.println("Playing sound...");
-  long locDelay = 1000000 / locFrequency / 1; // Was 2, calculate the delay value between transitions. 1 seconds worth of microseconds, divided by the locFrequency, then split in half since there are two phases to each cycle.
-  long locNumCycles = locFrequency * locMLength / 1000; // Calculate the number of cycles for proper timing. Multiply locFrequency, which is really cycles per second, by the number of seconds to get the total number of cycles to produce.
-  for (long locCurrentCycle = 0; locCurrentCycle < locNumCycles; locCurrentCycle++) {
+void MethodBuzzerShoo(long a_lFrequencySlin, long a_lMLengthSlin) {
+  Serial.println("Playing sound..."); // Debug info.
+  long m_lDelaySlin = 1000000 / a_lFrequencySlin / 1; // Calculate delay value between transitions. 1 seconds worth of microseconds, divided by the a_lFrequencySlin, then split in half since there are two phases to each cycle.
+  long m_lNumCyclesSlin = a_lFrequencySlin * a_lMLengthSlin / 1000; // Calculate the number of cycles for proper timing. Multiply a_lFrequencySlin, which is really cycles per second, by the number of seconds to get the total number of cycles to produce.
+  
+  // For loop that will push out and pull back diaphram for amount of cycles calculated above.
+  for (long m_lCurrentCycleSlin = 0; m_lCurrentCycleSlin < m_lNumCyclesSlin; m_lCurrentCycleSlin++) {
     digitalWrite(doBuzzerShoo, HIGH); // write the buzzer pin high to push out the diaphram.
-    delayMicroseconds(locDelay); // wait for the calculated delay.
+    delayMicroseconds(m_lDelaySlin); // wait for the calculated delay.
     digitalWrite(doBuzzerShoo, LOW); // write the buzzer pin low to pull back the diaphram.
-    delayMicroseconds(locDelay); // wait again for the calculated delay.
+    delayMicroseconds(m_lDelaySlin); // wait again for the calculated delay.
   }
 }
