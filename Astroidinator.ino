@@ -12,10 +12,12 @@ Timer tmrGameShoo; // Define timer to tick.
 #define diJoyPressShoo  2   // Define button on joystick.
 #define doBuzzerShoo    3   // Define buzzer to corresponding pin.
 
-int iCursorPositionShoo[] = {15, 1}; // Where cursor is positioned.
+int iAstroidCountSlin = 0; // Astroids user has collected.
+int iSpaceShipCountSlin = 0; // Spaceships user has crashed into.
 int iCurrentGameScreenShoo = 0; // Default screen is start game, 1 = difficulty, 2 = enter name, 3 = game, 4 = post-game, 5 = highscore.
 int iCursorBoundsYSlin[] = {1, 2}; // Cursor boundaries for y.
 int iGameDifficulty = 0; // Game difficulty.
+int iCursorPositionShoo[] = {15, 1}; // Where cursor is positioned.
 int iEntityPositionsShoo[] = {
   1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -60,7 +62,7 @@ void setup() {
 }
 
 void loop() {
-  //Update the timer
+  //Update the timers
   tmrInputsShoo.update();
 
   tmrGameShoo.update();
@@ -160,6 +162,12 @@ void MethodUpdateCursorSlin(int a_iJoyDirectionShoo, int a_iBoundaryLowerSlin) {
   else if(a_iJoyDirectionShoo == 4 && iCursorPositionShoo[0] > 0) {
     iCursorPositionShoo[0]--;
   }
+
+  // Run collision detection if currently playing game.
+  if(iCurrentGameScreenShoo == 3) {
+    MethodColisionDetectionSlin();
+  }
+  
   MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "=");
 }
 
@@ -219,18 +227,11 @@ void MethodDisplayLayoutShoo() {
 }
 
 void MethodRunGameLogicShoo() {
-  int m_iTimeLeftShoo = 300 - ((millis() - uiGameTimerStartShoo) / 1000);
-  String m_sTimeLeftShoo = String(m_iTimeLeftShoo);
-  while(m_sTimeLeftShoo.length() < 3) {
-    m_sTimeLeftShoo = " " + m_sTimeLeftShoo;
-  }
-
   int m_iRandomNumShoo = random(0,3);
 
   for(int m_iLineCellShoo = 59; m_iLineCellShoo >= 0; m_iLineCellShoo--) {
     if (iEntityPositionsShoo[m_iLineCellShoo] > 0) {
-      // FOr some reason this if statement doesn't stop entities from crossing over to next line, fix tomorrow.
-      if (m_iLineCellShoo != 19 || m_iLineCellShoo != 39 || m_iLineCellShoo != 59) {
+      if (m_iLineCellShoo != 19 && m_iLineCellShoo != 39 && m_iLineCellShoo != 59) {
         iEntityPositionsShoo[m_iLineCellShoo + 1] = iEntityPositionsShoo[m_iLineCellShoo];
         
         int m_iXvalShoo = m_iLineCellShoo + 1;
@@ -263,9 +264,12 @@ void MethodRunGameLogicShoo() {
     }
   }
   
-  MethodWriteToLcdShoo(17, 3, m_sTimeLeftShoo);
-  MethodUpdateCursorSlin(-1, 0); // Pass along -1, so it'll just update position.
-  
+  MethodUpdateCursorSlin(-1, 0); // Pass along -1, so it'll just redraw cursor position.
+  MethodColisionDetectionSlin(); // Check if updated positions has caused a collision, and update scoreboard if it has.
+  int m_iTimeLeftShoo = 300 - ((millis() - uiGameTimerStartShoo) / 1000); // Calculate time.
+  MethodWriteToLcdShoo(17, 3, MethodString3CharsSlin(m_iTimeLeftShoo)); // Update time.
+
+  // Time is up, so go to endgame screen.
   if (m_iTimeLeftShoo <= 0) {
     tmrGameShoo.stop();
     iCursorPositionShoo[0] = 15;
@@ -275,11 +279,48 @@ void MethodRunGameLogicShoo() {
   }
 }
 
+void MethodColisionDetectionSlin() {
+  int m_iCursorArrayPosition = iCursorPositionShoo[0] + iCursorPositionShoo[1] * 20; // Convert cursor position to array position.
+
+  // If cursor collides with an entity, add 1 to entity count, remove entity from array and update score in bottom of screen.
+  if(iEntityPositionsShoo[m_iCursorArrayPosition] > 0) {
+    if (iEntityPositionsShoo[m_iCursorArrayPosition] == 1) {
+      iSpaceShipCountSlin++;
+      MethodWriteToLcdShoo(8, 3, MethodString3CharsSlin(iSpaceShipCountSlin)); // Update spaceship scoreboard.
+    }
+    else if (iEntityPositionsShoo[m_iCursorArrayPosition] == 2) {
+      iAstroidCountSlin++;
+      MethodWriteToLcdShoo(2, 3, MethodString3CharsSlin(iAstroidCountSlin)); // Update asteroid scoreboard.
+    }
+
+    iEntityPositionsShoo[m_iCursorArrayPosition] = 0; // Remove entity from game.
+    int m_iPlayerScoreSlin = iAstroidCountSlin - iSpaceShipCountSlin; // Calculate score by subtracting spaceships from asteroids.
+
+    // Score can't be negative, so if it is, just print a score of 0, else print score.
+    if(m_iPlayerScoreSlin < 0) {
+      MethodWriteToLcdShoo(13, 3, "000");
+    }
+    else {
+      MethodWriteToLcdShoo(13, 3, MethodString3CharsSlin(m_iPlayerScoreSlin));
+    }
+  }
+}
+
+String MethodString3CharsSlin(int a_iScoreboardValSlin) {
+  String m_sScoreboardStringSlin = String(a_iScoreboardValSlin);
+  while(m_sScoreboardStringSlin.length() < 3) {
+    m_sScoreboardStringSlin = "0" + m_sScoreboardStringSlin;
+  }
+
+  return m_sScoreboardStringSlin; // Return 3 length String.
+}
+
 // Method that prints a string to specific place on Lcd, where x val is place on row, y is colomn and lcdString is string to be printed.
-void MethodWriteToLcdShoo(int a_valX, int a_valY, String a_lcdString) {
+void MethodWriteToLcdShoo(int a_valX, int a_valY, String a_sLcdString) {
   lcd4x20Shoo.setCursor(a_valX, a_valY); // Set lcd to given values.
-  for(int m_stringIndex = 0; m_stringIndex < a_lcdString.length(); m_stringIndex++)
+  
+  for(int m_stringIndex = 0; m_stringIndex < a_sLcdString.length(); m_stringIndex++)
   {
-    lcd4x20Shoo.print(a_lcdString[m_stringIndex]);
+    lcd4x20Shoo.print(a_sLcdString[m_stringIndex]);
   }
 }
