@@ -64,7 +64,7 @@ void setup() {
 
 
   // Print startup info.
-  MethodWriteToLcdShoo(0, 0, "Astroidinator! V1.0");
+  MethodWriteToLcdShoo(0, 0, "Astroidinator! V1.2");
   MethodWriteToLcdShoo(0, 1, "Made by: Stijn");
   MethodWriteToLcdShoo(0, 2, "Lingmont & Sander vd");
   MethodWriteToLcdShoo(0, 3, "Hoogen - 24/6/2019");
