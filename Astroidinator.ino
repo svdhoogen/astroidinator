@@ -27,12 +27,12 @@ int iAstroidCountSlin = 0; // Astroids user has collected.
 int iSpaceShipCountSlin = 0; // Spaceships user has crashed into.
 int iCurrentGameScreenShoo = 0; // Default screen is start game, 1 = difficulty, 2 = enter name, 3 = game, 4 = post-game, 5 = highscore.
 int iCursorBoundsYSlin[] = {1, 2}; // Cursor boundaries for y.
-int iGameDifficulty = 0; // Game difficulty.
+int iDifficultylevelShoo = 14; // Define upper boundary for spaceship generation, which determines difficulty.
 int iCursorPositionShoo[] = {15, 1}; // Where cursor is positioned.
 int iEntityPositionsShoo[] = {
-  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
   }; // Defines entities on playfield, 0 = nothing, 1 = space ships, 2 = asteroids.
 
 unsigned long uiGameTimerStartShoo = 0; //Timer variable
@@ -135,10 +135,10 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
   else if (iCurrentGameScreenShoo == 1) {
     //Difficulty menu
     if (a_iJoyShoo == 0) {
-      //Set difficulty of the game
-      iGameDifficulty = iCursorPositionShoo[1]; // Set difficulty.
+      //Set difficulty of the game by defining upper boundary for spaceship generation, increasing spaceship frequency.
+      iDifficultylevelShoo = 14 - iCursorPositionShoo[1];
       iCurrentGameScreenShoo = 2;
-      Serial.println("Difficulty is: " + String(iGameDifficulty));
+      Serial.println("Difficulty is: " + String(iDifficultylevelShoo));
       MethodDisplayLayoutShoo();
     }
     else if (a_iJoyShoo < 3) {
@@ -181,13 +181,13 @@ void MethodUpdateCursorSlin(int a_iJoyDirectionShoo, int a_iBoundaryLowerSlin) {
   else if(a_iJoyDirectionShoo == 4 && iCursorPositionShoo[0] > 0) {
     iCursorPositionShoo[0]--;
   }
-
+  
+  MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "="); //Set cursor on new cel
+  
   // Run collision detection if currently playing game.
   if(iCurrentGameScreenShoo == 3) {
     MethodColisionDetectionSlin();
   }
-  
-  MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "="); //Set cursor on new cel
 }
 
 //Base layout for every game screen
@@ -226,7 +226,20 @@ void MethodDisplayLayoutShoo() {
     MethodWriteToLcdShoo(19, 1, "|");
     MethodWriteToLcdShoo(19, 2, "|");
     MethodWriteToLcdShoo(0, 3, "--------------------");
-    delay(1000);
+    MethodBuzzerShoo(250, 100);
+    delay(50);
+    MethodBuzzerShoo(350, 100);
+    delay(50);
+    MethodBuzzerShoo(450, 100);
+    delay(50);
+    MethodBuzzerShoo(150, 100);
+    delay(25);
+    MethodBuzzerShoo(700, 100);
+    delay(25);
+    MethodBuzzerShoo(1000, 100);
+    delay(25);
+    MethodBuzzerShoo(400, 100);
+    delay(300);
     lcd4x20Shoo.clear();
     iCursorPositionShoo[0] = 19;
     iCursorPositionShoo[1] = 1;
@@ -255,8 +268,6 @@ void MethodDisplayLayoutShoo() {
 
 //Game logics for within the game when started
 void MethodRunGameLogicShoo() {
-  int m_iRandomNumShoo = random(0,3);
-
   for(int m_iLineCellShoo = 59; m_iLineCellShoo >= 0; m_iLineCellShoo--) {
     if (iEntityPositionsShoo[m_iLineCellShoo] > 0) {
       //Movement of the astroids and spaceships
@@ -295,6 +306,24 @@ void MethodRunGameLogicShoo() {
       MethodWriteToLcdShoo(m_iXvalShoo, m_iYvalShoo, " "); //Remove last character sprite
     }
   }
+
+  int m_iRandomEntityShoo[] = {random(0, 16), random(0, 16), random(0, 16)};
+  
+  for(int m_iLoopCountShoo = 0; m_iLoopCountShoo < 3; m_iLoopCountShoo++) {
+    if (m_iRandomEntityShoo[m_iLoopCountShoo] > iDifficultylevelShoo) {
+      iEntityPositionsShoo[m_iLoopCountShoo * 20] = 1;
+      MethodWriteToLcdShoo(0, m_iLoopCountShoo, ">");
+    }
+    else if (m_iRandomEntityShoo[m_iLoopCountShoo] > iDifficultylevelShoo - 2) {
+      iEntityPositionsShoo[m_iLoopCountShoo * 20] = 2;
+      MethodWriteToLcdShoo(0, m_iLoopCountShoo, "*");
+    }
+  }
+
+  // If a wall of enemies has been generated, remove random enemy.
+  if (iEntityPositionsShoo[0] == 1 && iEntityPositionsShoo[20] == 1 && iEntityPositionsShoo[40] && 1) {
+    iEntityPositionsShoo[random(0, 3) * 20] = 0;
+  }
   
   MethodUpdateCursorSlin(-1, 0); // Pass along -1, so it'll just redraw cursor position.
   MethodColisionDetectionSlin(); // Check if updated positions has caused a collision, and update scoreboard if it has.
@@ -319,10 +348,16 @@ void MethodColisionDetectionSlin() {
     if (iEntityPositionsShoo[m_iCursorArrayPosition] == 1) {
       iSpaceShipCountSlin++;
       MethodWriteToLcdShoo(8, 3, MethodString3CharsSlin(iSpaceShipCountSlin)); // Update spaceship scoreboard.
+      MethodBuzzerShoo(400, 100);
+      delay(10);
+      MethodBuzzerShoo(200, 100);
     }
     else if (iEntityPositionsShoo[m_iCursorArrayPosition] == 2) {
       iAstroidCountSlin++;
       MethodWriteToLcdShoo(2, 3, MethodString3CharsSlin(iAstroidCountSlin)); // Update asteroid scoreboard.
+      MethodBuzzerShoo(500, 100);
+      delay(10);
+      MethodBuzzerShoo(750, 100);
     }
 
     iEntityPositionsShoo[m_iCursorArrayPosition] = 0; // Remove entity from game.
@@ -355,5 +390,19 @@ void MethodWriteToLcdShoo(int a_valX, int a_valY, String a_sLcdString) {
   for(int m_stringIndex = 0; m_stringIndex < a_sLcdString.length(); m_stringIndex++)
   {
     lcd4x20Shoo.print(a_sLcdString[m_stringIndex]);
+  }
+}
+
+// Method playing sound through buzzer, found on internet, source provided below. Code used from 274 to 290 with minor tweaks.
+// https://create.arduino.cc/projecthub/jrance/super-mario-theme-song-w-piezo-buzzer-and-arduino-1cc2e4?ref=search&ref_id=buzzer&offset=5
+void MethodBuzzerShoo(long locFrequency, long locMLength) {
+  Serial.println("Playing sound...");
+  long locDelay = 1000000 / locFrequency / 1; // Was 2, calculate the delay value between transitions. 1 seconds worth of microseconds, divided by the locFrequency, then split in half since there are two phases to each cycle.
+  long locNumCycles = locFrequency * locMLength / 1000; // Calculate the number of cycles for proper timing. Multiply locFrequency, which is really cycles per second, by the number of seconds to get the total number of cycles to produce.
+  for (long locCurrentCycle = 0; locCurrentCycle < locNumCycles; locCurrentCycle++) {
+    digitalWrite(doBuzzerShoo, HIGH); // write the buzzer pin high to push out the diaphram.
+    delayMicroseconds(locDelay); // wait for the calculated delay.
+    digitalWrite(doBuzzerShoo, LOW); // write the buzzer pin low to pull back the diaphram.
+    delayMicroseconds(locDelay); // wait again for the calculated delay.
   }
 }
