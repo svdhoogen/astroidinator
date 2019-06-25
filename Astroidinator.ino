@@ -12,6 +12,7 @@
 #include <timer.h> // Timer library.
 #include <Wire.h> // Include wire library, which facilitates serial communication with lcd.
 #include <LiquidCrystal_I2C.h> // Include I2C library for lcd screen.
+#include <EEPROM.h> // Include library that allows us to write data to memory.
 
 LiquidCrystal_I2C lcd4x20Shoo(0x3F, 20, 4); // Initialize new object called 'lcd', that will control what is displayed on lcd.
 
@@ -22,13 +23,17 @@ Timer tmrGameShoo; // Define timer to tick.
 #define aiJoyYValShoo   A3  // Y val on joy.
 #define diJoyPressShoo  2   // Define button on joystick.
 #define doBuzzerShoo    3   // Define buzzer to corresponding pin.
+#define iTotalGameTimeShoo  50 // Defines total seconds game will run for.
 
 int iAstroidCountSlin = 0; // Astroids user has collected.
-int iSpaceShipCountSlin = 0; // Spaceships user has crashed into.
-bool bPreviousBtnStateSlin = 0; // Previous state of joystick button.
+int iSpaceShipCountSlin = 0; // Spaceships user has crashed into
+int iHighscoreSlin = 0; // Holds highscore.
+char cUserNameSlin = "A";
+bool bPreviousBtnStateSlin = 1; // Previous state of joystick button.
 int iCurrentGameScreenShoo = 0; // Default screen is start game, 1 = difficulty, 2 = enter name, 3 = game, 4 = post-game, 5 = highscore.
-int iCursorBoundsYSlin[] = {1, 2}; // Cursor boundaries for y.
+
 int iDifficultylevelShoo = 14; // Define upper boundary for spaceship generation, which determines difficulty.
+int iCursorBoundsYSlin[] = {1, 2}; // Cursor boundaries for y.
 int iCursorPositionShoo[] = {15, 1}; // Where cursor is positioned.
 int iEntityPositionsShoo[] = {
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -43,11 +48,20 @@ void setup() {
   pinMode(doBuzzerShoo, OUTPUT); // Set buzzer output.
   digitalWrite(diJoyPressShoo, HIGH); // Write joystick button high(default, unpressed value is high).
   randomSeed(analogRead(0));
+
+  //EEPROM.write(0, 1); // Overwrite byte with default score.
+  //EEPROM.write(1, 'a'); // Overwrite byte with default score.
+  
+  iHighscoreSlin = EEPROM.read(0); // Get highscore from byte 0.
+  cUserNameSlin = EEPROM.read(1); // Get username char from byte 1.
   
   Serial.begin(115200); // Open serial console.
   lcd4x20Shoo.init(); // Initialise lcd.
   lcd4x20Shoo.setBacklight(1); // Enable backlight for bright screen.
   lcd4x20Shoo.clear(); // Clear lcd.
+  Serial.println(iHighscoreSlin);
+  Serial.println(cUserNameSlin);
+
 
   // Print startup info.
   MethodWriteToLcdShoo(0, 0, "Astroidinator! V1.0");
@@ -77,18 +91,16 @@ void MethodReadJoystickShoo() {
   int m_joyXValShoo = analogRead(aiJoyXValShoo); // X val.
   int m_joyYvalShoo = analogRead(aiJoyYValShoo); // Y val.
   int m_joyBtnPressShoo = digitalRead(diJoyPressShoo); // Button press.
-  delay(10); // Debounce.
+  delay(5); // Debounce.
   int m_joyBtnPress2Shoo = digitalRead(diJoyPressShoo); // Button press.
 
   // Button debounce.
-  if(m_joyBtnPressShoo == m_joyBtnPress2Shoo && m_joyBtnPressShoo == 0 && bPreviousBtnStateSlin == 0) {
+  if (m_joyBtnPressShoo == m_joyBtnPress2Shoo && m_joyBtnPressShoo == 0 && m_joyBtnPressShoo != bPreviousBtnStateSlin) {
     Serial.println("Button pressed...");
     MethodHandleInputsShoo(0);
-    bPreviousBtnStateSlin = 1;
   }
-  else if(m_joyBtnPressShoo == 0 && bPreviousBtnStateSlin == 1) {
-    bPreviousBtnStateSlin = 0;
-  }
+
+  bPreviousBtnStateSlin = m_joyBtnPressShoo;
 
   if (m_joyYvalShoo > 600) {
     Serial.println("Joystick down.");
@@ -131,8 +143,7 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
   // If on second gamescreen, only process joystick click and up/down.
   else if (iCurrentGameScreenShoo == 1) {
     if (a_iJoyShoo == 0) {
-      //Set difficulty of the game by defining upper boundary for spaceship generation, increasing spaceship frequency.
-      iDifficultylevelShoo = 14 - iCursorPositionShoo[1];
+      iDifficultylevelShoo = 14 - iCursorPositionShoo[1]; //Set difficulty of the game by defining upper boundary for spaceship generation, increasing spaceship frequency.
       iCurrentGameScreenShoo = 2;
       Serial.println("Difficulty is: " + String(iDifficultylevelShoo));
       MethodDisplayLayoutShoo();
@@ -141,8 +152,27 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
       MethodUpdateCursorSlin(a_iJoyShoo, 0);
     }
   }
+  // If on third game screen, only process click, left, right.
   else if (iCurrentGameScreenShoo == 2) {
-    // Enter name menu (WIP).
+    String m_sNameSelectedShoo = "ABCDEFGHIJKLMNOPQRST";
+    String m_sNameUnselectedShoo = "abcdefghijklmonpqrst";
+    
+    if (a_iJoyShoo == 0) {
+      cUserNameSlin = m_sNameSelectedShoo.charAt(iCursorPositionShoo[0]);
+      Serial.println("Selected name is: " + cUserNameSlin);
+      iCurrentGameScreenShoo = 3;
+      MethodDisplayLayoutShoo();
+    }
+    else if (a_iJoyShoo == 3 && iCursorPositionShoo[0] < 20) {
+      MethodWriteToLcdShoo(iCursorPositionShoo[0], 1, String(m_sNameUnselectedShoo.charAt(iCursorPositionShoo[0])));
+      iCursorPositionShoo[0]++;
+      MethodWriteToLcdShoo(iCursorPositionShoo[0], 1, String(m_sNameSelectedShoo.charAt(iCursorPositionShoo[0])));
+    }
+    else if (a_iJoyShoo == 4 && iCursorPositionShoo[0] > 0) {
+      MethodWriteToLcdShoo(iCursorPositionShoo[0], 1, String(m_sNameUnselectedShoo.charAt(iCursorPositionShoo[0])));
+      iCursorPositionShoo[0]--;
+      MethodWriteToLcdShoo(iCursorPositionShoo[0], 1, String(m_sNameSelectedShoo.charAt(iCursorPositionShoo[0])));
+    }
   }
   // If on fourth gamescreen, process all buttons(except click WIP.).
   else if (iCurrentGameScreenShoo == 3) {
@@ -150,7 +180,7 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
       MethodUpdateCursorSlin(a_iJoyShoo, 0);
     }
   }
-  // If on second gamescreen, only process joystick click and up/down.
+  // If on Fifth gamescreen, only process joystick click and up/down.
   else if (iCurrentGameScreenShoo == 4) {
     if (a_iJoyShoo == 0) {
       if (iCursorPositionShoo[1] == 1) {
@@ -167,8 +197,13 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
       MethodUpdateCursorSlin(a_iJoyShoo, 1);
     }
   }
+  // If on sixth gamescreen, only process button click.
   else if (iCurrentGameScreenShoo == 5) {
-    // Highscores (WIP).
+    if (a_iJoyShoo == 0) {
+      Serial.println("Switching back to start game..."); // Debug info.
+      iCurrentGameScreenShoo = 0;
+      MethodDisplayLayoutShoo();
+    }
   }
 }
 
@@ -221,10 +256,10 @@ void MethodDisplayLayoutShoo() {
   }
   // Enter name menu (WIP).
   else if (iCurrentGameScreenShoo == 2) {
-    MethodWriteToLcdShoo(4, 1, "Enter name!");
-    delay(1000);
-    iCurrentGameScreenShoo++;
-    MethodDisplayLayoutShoo();
+    MethodWriteToLcdShoo(0, 0, "Select your name!");
+    MethodWriteToLcdShoo(0, 1, "Abcdefghijklmonpqrst");
+    iCursorPositionShoo[0] = 0;
+    iCursorPositionShoo[1] = 1;
   }
   // Game screen.
   else if (iCurrentGameScreenShoo == 3) {
@@ -270,7 +305,8 @@ void MethodDisplayLayoutShoo() {
   }
   // Post-game menu.
   else if (iCurrentGameScreenShoo == 4) {
-    MethodWriteToLcdShoo(1, 2, "Your score was " + String(MethodIntToString3Slin(iAstroidCountSlin - iSpaceShipCountSlin))); // Print gotten score to screen.
+    int m_iCurrentScore = iAstroidCountSlin - iSpaceShipCountSlin;
+    MethodWriteToLcdShoo(1, 2, "Your score was " + String(MethodIntToString3Slin(m_iCurrentScore))); // Print gotten score to screen.
     
     // User has lost, play lost sound and print You have lost! for ~2 seconds.
     if (iAstroidCountSlin - iSpaceShipCountSlin < 0) {
@@ -310,6 +346,18 @@ void MethodDisplayLayoutShoo() {
     }
     delay(2000);
     lcd4x20Shoo.clear(); // Clear screen, update cursor and print new dialogue.
+
+    // If current score is higher then highscore, set new highscore.
+    if(m_iCurrentScore > iHighscoreSlin) {
+      iHighscoreSlin = m_iCurrentScore;
+      EEPROM.write(0, iHighscoreSlin); // Write highscore to memory
+      EEPROM.write(1, cUserNameSlin); // Write highscore to memory
+      MethodWriteToLcdShoo(2, 1, "You've achieved");
+      MethodWriteToLcdShoo(2, 2, "a new highscore!");
+      Serial.println("New highscore achieved: " + String(cUserNameSlin) + " " + String(iHighscoreSlin));
+      delay(2000);
+      lcd4x20Shoo.clear(); // Clear screen, update cursor and print new dialogue.
+    }
     
     iCursorBoundsYSlin[0] = 1;
     iCursorPositionShoo[0] = 11;
@@ -320,11 +368,9 @@ void MethodDisplayLayoutShoo() {
   }
   // Highscores menu.
   else if (iCurrentGameScreenShoo == 5) {
-    MethodWriteToLcdShoo(1, 1, "Highscores.");
-    MethodWriteToLcdShoo(1, 2, "Work in progress.");
-    delay(1000);
-    iCurrentGameScreenShoo = 0;
-    MethodDisplayLayoutShoo();
+    MethodWriteToLcdShoo(1, 0, "Current highscore:");
+    MethodWriteToLcdShoo(7, 1, String(cUserNameSlin) + " " + MethodIntToString3Slin(iHighscoreSlin));
+    MethodWriteToLcdShoo(6, 3, "Return =");
   }
 }
 
@@ -396,7 +442,7 @@ void MethodRunGameLogicShoo() {
   
   MethodUpdateCursorSlin(-1, 0); // Pass along -1, so it'll just redraw cursor position, otherwise if player collides with entity entity will take priority which isn't supposed to happen.
   MethodColisionDetectionSlin(); // Check for collisions.
-  int m_iTimeLeftShoo = 300 - ((millis() - uiGameTimerStartShoo) / 1000); // Calculate time.
+  int m_iTimeLeftShoo = iTotalGameTimeShoo - ((millis() - uiGameTimerStartShoo) / 1000); // Calculate time.
   MethodWriteToLcdShoo(17, 3, MethodIntToString3Slin(m_iTimeLeftShoo)); // Update time.
 
   // Time is up, so perform logic for and go to endgame screen.
