@@ -1,3 +1,14 @@
+/*
+  Astroidinator
+  from 24-6-2019 till 26-6-2019
+  
+  Made by:
+  Sander van den Hoogen
+  Stijn Lingmont
+
+  IC18.AO.A
+*/
+
 #include <timer.h> // Timer library.
 #include <Wire.h> // Include wire library, which facilitates serial communication with lcd.
 #include <LiquidCrystal_I2C.h> // Include I2C library for lcd screen.
@@ -24,7 +35,7 @@ int iEntityPositionsShoo[] = {
   1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
   }; // Defines entities on playfield, 0 = nothing, 1 = space ships, 2 = asteroids.
 
-unsigned long uiGameTimerStartShoo = 0;
+unsigned long uiGameTimerStartShoo = 0; //Timer variable
 
 void setup() {
   pinMode(diJoyPressShoo, INPUT); // Initialize joystick button.
@@ -33,10 +44,11 @@ void setup() {
   randomSeed(analogRead(0));
   
   Serial.begin(115200); // Open serial console.
-  lcd4x20Shoo.init();
-  lcd4x20Shoo.setBacklight(1);
-  lcd4x20Shoo.clear();
-  
+  lcd4x20Shoo.init(); //Initialise the lcd
+  lcd4x20Shoo.setBacklight(1); //Set the basic backlight for the lcd
+  lcd4x20Shoo.clear(); //clear the lcd
+
+  //Startup information
   MethodWriteToLcdShoo(0, 0, "Astroidinator! V0.1");
   MethodWriteToLcdShoo(0, 1, "Made by: Stijn");
   MethodWriteToLcdShoo(0, 2, "Lingmont & Sander vd");
@@ -64,10 +76,10 @@ void setup() {
 void loop() {
   //Update the timers
   tmrInputsShoo.update();
-
   tmrGameShoo.update();
 }
 
+//Read the input of the joystick
 void MethodReadJoystickShoo() {
   int m_joyXValShoo = analogRead(aiJoyXValShoo); // X val.
   int m_joyYvalShoo = analogRead(aiJoyYValShoo); // Y val.
@@ -99,18 +111,21 @@ void MethodReadJoystickShoo() {
   }
 }
 
+//Actions based on the inputs of the joystick
 void MethodHandleInputsShoo(int a_iJoyShoo) {
   if (iCurrentGameScreenShoo == 0) {
+    //Startup menu
     if (a_iJoyShoo == 0) {
       if (iCursorPositionShoo[1] == 1) {
+        //Start game
         iCurrentGameScreenShoo = 1;
         Serial.println("Starting game!");
       }
       else {
+        //Dislay highscores
         iCurrentGameScreenShoo = 5;
         Serial.println("Displaying highscores...");
       }
-
       MethodDisplayLayoutShoo();
     }
     else if (a_iJoyShoo < 3) {
@@ -118,8 +133,10 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
     }
   }
   else if (iCurrentGameScreenShoo == 1) {
+    //Difficulty menu
     if (a_iJoyShoo == 0) {
-      iGameDifficulty = iCursorPositionShoo[1]; // Get difficulty.
+      //Set difficulty of the game
+      iGameDifficulty = iCursorPositionShoo[1]; // Set difficulty.
       iCurrentGameScreenShoo = 2;
       Serial.println("Difficulty is: " + String(iGameDifficulty));
       MethodDisplayLayoutShoo();
@@ -129,27 +146,29 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
     }
   }
   else if (iCurrentGameScreenShoo == 2) {
-    
+    //Enter name menu
   }
   else if (iCurrentGameScreenShoo == 3) {
     if (a_iJoyShoo == 0) {
-      
+      //game
     }
     else {
       MethodUpdateCursorSlin(a_iJoyShoo, 0);
     }
   }
   else if (iCurrentGameScreenShoo == 4) {
-    
+    //post-game screen
   }
   else if (iCurrentGameScreenShoo == 5) {
-    
+    //highscores
   }
 }
 
+//Update the cursor based on the movement of the joystick
 void MethodUpdateCursorSlin(int a_iJoyDirectionShoo, int a_iBoundaryLowerSlin) {
-  MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], " ");
-  
+  MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], " "); //Clear last cel
+
+  //Check which direction the cursor needs to go
   if (a_iJoyDirectionShoo == 1 && iCursorPositionShoo[1] < 2) {
     iCursorPositionShoo[1]++;
   }
@@ -168,18 +187,22 @@ void MethodUpdateCursorSlin(int a_iJoyDirectionShoo, int a_iBoundaryLowerSlin) {
     MethodColisionDetectionSlin();
   }
   
-  MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "=");
+  MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "="); //Set cursor on new cel
 }
 
+//Base layout for every game screen
 void MethodDisplayLayoutShoo() {
-  lcd4x20Shoo.clear();
+  lcd4x20Shoo.clear(); //Clear lcd
   Serial.println("Displaying gamescreen: " + String(iCurrentGameScreenShoo));
+  
   if (iCurrentGameScreenShoo == 0) {
+    //Startup menu
     MethodWriteToLcdShoo(4, 1, "Start game");
     MethodWriteToLcdShoo(4, 2, "Highscores");
     MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "=");
   }
   else if (iCurrentGameScreenShoo == 1) {
+    //Difficulty menu
     iCursorPositionShoo[0] = 15;
     iCursorPositionShoo[1] = 1;
     MethodWriteToLcdShoo(4, 0, "Recruit");
@@ -188,12 +211,14 @@ void MethodDisplayLayoutShoo() {
     MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "=");
   }
   else if (iCurrentGameScreenShoo == 2) {
+    //enter name menu
     MethodWriteToLcdShoo(4, 1, "Enter name!");
     delay(1000);
     iCurrentGameScreenShoo++;
     MethodDisplayLayoutShoo();
   }
   else if (iCurrentGameScreenShoo == 3) {
+    //game
     MethodWriteToLcdShoo(0, 0, "--------------------");
     MethodWriteToLcdShoo(0, 1, "|");
     MethodWriteToLcdShoo(0, 2, "|");
@@ -211,6 +236,7 @@ void MethodDisplayLayoutShoo() {
     tmrGameShoo.start(); // Comence game logic.
   }
   else if (iCurrentGameScreenShoo == 4) {
+    //post-game menu
     MethodWriteToLcdShoo(1, 1, "Endgame screen.");
     MethodWriteToLcdShoo(1, 2, "Work in progress.");
     delay(1000);
@@ -218,6 +244,7 @@ void MethodDisplayLayoutShoo() {
     MethodDisplayLayoutShoo();
   }
   else if (iCurrentGameScreenShoo == 5) {
+    //highscores menu
     MethodWriteToLcdShoo(1, 1, "Highscores.");
     MethodWriteToLcdShoo(1, 2, "Work in progress.");
     delay(1000);
@@ -226,22 +253,26 @@ void MethodDisplayLayoutShoo() {
   }
 }
 
+//Game logics for within the game when started
 void MethodRunGameLogicShoo() {
   int m_iRandomNumShoo = random(0,3);
 
   for(int m_iLineCellShoo = 59; m_iLineCellShoo >= 0; m_iLineCellShoo--) {
     if (iEntityPositionsShoo[m_iLineCellShoo] > 0) {
+      //Movement of the astroids and spaceships
       if (m_iLineCellShoo != 19 && m_iLineCellShoo != 39 && m_iLineCellShoo != 59) {
-        iEntityPositionsShoo[m_iLineCellShoo + 1] = iEntityPositionsShoo[m_iLineCellShoo];
+        iEntityPositionsShoo[m_iLineCellShoo + 1] = iEntityPositionsShoo[m_iLineCellShoo]; //Replace position of entitiy to the right within the array
         
-        int m_iXvalShoo = m_iLineCellShoo + 1;
-        int m_iYvalShoo = 0;
-      
+        int m_iXvalShoo = m_iLineCellShoo + 1; //X coordinate of the spaceship/astroid
+        int m_iYvalShoo = 0; //Y coordinate of the spaceship/astroid
+
+        //spaceship/astroid will begin again one row beneath his last when reaching the end of the screen
         while (m_iXvalShoo > 19) {
           m_iXvalShoo = m_iXvalShoo - 20;
           m_iYvalShoo++;
         }
-        
+
+        //Write the character sprite of the astroid or spaceship to the LCD
         if (iEntityPositionsShoo[m_iLineCellShoo + 1] == 1) {
           MethodWriteToLcdShoo(m_iXvalShoo, m_iYvalShoo, ">");
         }
@@ -250,17 +281,18 @@ void MethodRunGameLogicShoo() {
         }
       }
       
-      iEntityPositionsShoo[m_iLineCellShoo] = 0;
+      iEntityPositionsShoo[m_iLineCellShoo] = 0; //Position of the entity
 
-      int m_iXvalShoo = m_iLineCellShoo;
-      int m_iYvalShoo = 0;
+      int m_iXvalShoo = m_iLineCellShoo; //X coordinate of the spaceship/astroid
+      int m_iYvalShoo = 0; //Y coordinate of the spaceship/astroid
       
+      //spaceship/astroid will begin again one row beneath his last when reaching the end of the screen
       while (m_iXvalShoo > 19) {
         m_iXvalShoo = m_iXvalShoo - 20;
         m_iYvalShoo++;
       }
 
-      MethodWriteToLcdShoo(m_iXvalShoo, m_iYvalShoo, " ");
+      MethodWriteToLcdShoo(m_iXvalShoo, m_iYvalShoo, " "); //Remove last character sprite
     }
   }
   
@@ -319,6 +351,7 @@ String MethodString3CharsSlin(int a_iScoreboardValSlin) {
 void MethodWriteToLcdShoo(int a_valX, int a_valY, String a_sLcdString) {
   lcd4x20Shoo.setCursor(a_valX, a_valY); // Set lcd to given values.
   
+  //Print string that is given within the method
   for(int m_stringIndex = 0; m_stringIndex < a_sLcdString.length(); m_stringIndex++)
   {
     lcd4x20Shoo.print(a_sLcdString[m_stringIndex]);
