@@ -155,7 +155,7 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
   // If on third game screen, only process click, left, right.
   else if (iCurrentGameScreenShoo == 2) {
     String m_sNameSelectedShoo = "ABCDEFGHIJKLMNOPQRST";
-    String m_sNameUnselectedShoo = "abcdefghijklmonpqrst";
+    String m_sNameUnselectedShoo = "abcdefghijklmnopqrst";
     
     if (a_iJoyShoo == 0) {
       cUserNameSlin = m_sNameSelectedShoo.charAt(iCursorPositionShoo[0]);
@@ -257,7 +257,7 @@ void MethodDisplayLayoutShoo() {
   // Enter name menu (WIP).
   else if (iCurrentGameScreenShoo == 2) {
     MethodWriteToLcdShoo(0, 0, "Select your name!");
-    MethodWriteToLcdShoo(0, 1, "Abcdefghijklmonpqrst");
+    MethodWriteToLcdShoo(0, 1, "Abcdefghijklmnopqrst");
     iCursorPositionShoo[0] = 0;
     iCursorPositionShoo[1] = 1;
   }
