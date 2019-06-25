@@ -49,7 +49,7 @@ void setup() {
   lcd4x20Shoo.clear(); //clear the lcd
 
   //Startup information
-  MethodWriteToLcdShoo(0, 0, "Astroidinator! V0.1");
+  MethodWriteToLcdShoo(0, 0, "Astroidinator! V1.0");
   MethodWriteToLcdShoo(0, 1, "Made by: Stijn");
   MethodWriteToLcdShoo(0, 2, "Lingmont & Sander vd");
   MethodWriteToLcdShoo(0, 3, "Hoogen - 24/6/2019");
@@ -158,6 +158,22 @@ void MethodHandleInputsShoo(int a_iJoyShoo) {
   }
   else if (iCurrentGameScreenShoo == 4) {
     //post-game screen
+    if (a_iJoyShoo == 0) {
+      if (iCursorPositionShoo[1] == 1) {
+        // Go to start screen.
+        iCurrentGameScreenShoo = 3;
+        Serial.println("Starting new game!");
+      }
+      else {
+        //Dislay highscores
+        iCurrentGameScreenShoo = 0;
+        Serial.println("Going back to start screen.");
+      }
+      MethodDisplayLayoutShoo();
+    }
+    else if (a_iJoyShoo < 3) {
+      MethodUpdateCursorSlin(a_iJoyShoo, 1);
+    }
   }
   else if (iCurrentGameScreenShoo == 5) {
     //highscores
@@ -197,6 +213,7 @@ void MethodDisplayLayoutShoo() {
   
   if (iCurrentGameScreenShoo == 0) {
     //Startup menu
+    iCursorPositionShoo[0] = 15;
     MethodWriteToLcdShoo(4, 1, "Start game");
     MethodWriteToLcdShoo(4, 2, "Highscores");
     MethodWriteToLcdShoo(iCursorPositionShoo[0], iCursorPositionShoo[1], "=");
@@ -219,6 +236,14 @@ void MethodDisplayLayoutShoo() {
   }
   else if (iCurrentGameScreenShoo == 3) {
     //game
+    // Clears all entities from gamelogic.
+    for(int m_iLoopCountSlin = 0; m_iLoopCountSlin < 60; m_iLoopCountSlin++) {
+      iEntityPositionsShoo[m_iLoopCountSlin] = 0;
+    }
+    
+    int iAstroidCountSlin = 0; // Astroids user has collected.
+    int iSpaceShipCountSlin = 0; // Spaceships user has crashed into.
+    
     MethodWriteToLcdShoo(0, 0, "--------------------");
     MethodWriteToLcdShoo(0, 1, "|");
     MethodWriteToLcdShoo(0, 2, "|");
@@ -249,12 +274,54 @@ void MethodDisplayLayoutShoo() {
     tmrGameShoo.start(); // Comence game logic.
   }
   else if (iCurrentGameScreenShoo == 4) {
-    //post-game menu
-    MethodWriteToLcdShoo(1, 1, "Endgame screen.");
-    MethodWriteToLcdShoo(1, 2, "Work in progress.");
-    delay(1000);
-    iCurrentGameScreenShoo = 0;
-    MethodDisplayLayoutShoo();
+    //post-game menu.
+    // User has lost.
+    MethodWriteToLcdShoo(1, 2, "Your score was " + String(MethodString3CharsSlin(iAstroidCountSlin - iSpaceShipCountSlin)));
+    
+    if (iAstroidCountSlin - iSpaceShipCountSlin < 0) {
+      MethodWriteToLcdShoo(3, 1,"You have lost!");
+      MethodBuzzerShoo(1000, 100);
+      delay(10);
+      MethodBuzzerShoo(750, 100);
+      delay(10);
+      MethodBuzzerShoo(500, 100);
+      delay(15);
+      MethodBuzzerShoo(400, 100);
+      delay(20);
+      MethodBuzzerShoo(300, 100);
+      delay(25);
+      MethodBuzzerShoo(200, 100);
+      delay(30);
+      MethodBuzzerShoo(50, 100);
+      delay(50);
+    }
+    // User has won.
+    else {
+      MethodWriteToLcdShoo(3, 1 ,"You have won!");
+      MethodBuzzerShoo(50, 100);
+      delay(30);
+      MethodBuzzerShoo(200, 100);
+      delay(25);
+      MethodBuzzerShoo(300, 100);
+      delay(20);
+      MethodBuzzerShoo(400, 100);
+      delay(15);
+      MethodBuzzerShoo(500, 100);
+      delay(10);
+      MethodBuzzerShoo(750, 100);
+      delay(10);
+      MethodBuzzerShoo(1000, 100);
+      delay(10);
+    }
+    delay(2000);
+    lcd4x20Shoo.clear();
+    
+    iCursorBoundsYSlin[0] = 1;
+    iCursorPositionShoo[0] = 11;
+    iCursorPositionShoo[1] = 1;
+    MethodWriteToLcdShoo(1, 0,"Wanna play again?");
+    MethodWriteToLcdShoo(7, 1,"Yes =");
+    MethodWriteToLcdShoo(7, 2,"No");
   }
   else if (iCurrentGameScreenShoo == 5) {
     //highscores menu
