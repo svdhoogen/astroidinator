@@ -41,16 +41,13 @@ int iEntityPositionsShoo[] = {
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
   }; // Defines entities on playfield, 0 = nothing, 1 = space ships, 2 = asteroids.
 
-unsigned long uiGameTimerStartShoo = 0; //Timer variable
+unsigned long ulGameTimerStartShoo = 0; //Timer variable
 
 void setup() {
   pinMode(diJoyPressShoo, INPUT); // Initialize joystick button.
   pinMode(doBuzzerShoo, OUTPUT); // Set buzzer output.
   digitalWrite(diJoyPressShoo, HIGH); // Write joystick button high(default, unpressed value is high).
   randomSeed(analogRead(0));
-
-  //EEPROM.write(0, 1); // Overwrite byte with default score.
-  //EEPROM.write(1, 'a'); // Overwrite byte with default score.
   
   iHighscoreSlin = EEPROM.read(0); // Get highscore from byte 0.
   cUserNameSlin = EEPROM.read(1); // Get username char from byte 1.
@@ -59,16 +56,17 @@ void setup() {
   lcd4x20Shoo.init(); // Initialise lcd.
   lcd4x20Shoo.setBacklight(1); // Enable backlight for bright screen.
   lcd4x20Shoo.clear(); // Clear lcd.
-  Serial.println(iHighscoreSlin);
+  Serial.print("Current high score: ");
+  Serial.print(iHighscoreSlin);
+  Serial.print(" By: ");
   Serial.println(cUserNameSlin);
-
 
   // Print startup info.
   MethodWriteToLcdShoo(0, 0, "Astroidinator! V1.2");
   MethodWriteToLcdShoo(0, 1, "Made by: Stijn");
   MethodWriteToLcdShoo(0, 2, "Lingmont & Sander vd");
   MethodWriteToLcdShoo(0, 3, "Hoogen - 24/6/2019");
-  delay(2000);
+  delay(3000);
   
   MethodDisplayLayoutShoo(); // Print start game logic.
 
@@ -300,7 +298,7 @@ void MethodDisplayLayoutShoo() {
     iCursorPositionShoo[1] = 1;
     MethodUpdateCursorSlin(-1, 0); // Pass along -1, so it'll just redraw cursor.
     MethodWriteToLcdShoo(0, 3, "*=000 >=000 s000 300"); // Scoreboard elements.
-    uiGameTimerStartShoo = millis(); // Set start time to current time.
+    ulGameTimerStartShoo = millis(); // Set start time to current time.
     tmrGameShoo.start(); // Comence game logic.
   }
   // Post-game menu.
@@ -310,6 +308,7 @@ void MethodDisplayLayoutShoo() {
     
     // User has lost, play lost sound and print You have lost! for ~2 seconds.
     if (iAstroidCountSlin - iSpaceShipCountSlin < 0) {
+      Serial.println("Player has lost");
       MethodWriteToLcdShoo(3, 1,"You have lost!");
       MethodBuzzerShoo(1000, 100);
       delay(10);
@@ -328,6 +327,7 @@ void MethodDisplayLayoutShoo() {
     }
     // User has won, play won sound and print You have won! for ~2 seconds.
     else {
+      Serial.println("Player has won");
       MethodWriteToLcdShoo(3, 1 ,"You have won!");
       MethodBuzzerShoo(50, 100);
       delay(30);
@@ -442,7 +442,7 @@ void MethodRunGameLogicShoo() {
   
   MethodUpdateCursorSlin(-1, 0); // Pass along -1, so it'll just redraw cursor position, otherwise if player collides with entity entity will take priority which isn't supposed to happen.
   MethodColisionDetectionSlin(); // Check for collisions.
-  int m_iTimeLeftShoo = iTotalGameTimeShoo - ((millis() - uiGameTimerStartShoo) / 1000); // Calculate time.
+  int m_iTimeLeftShoo = iTotalGameTimeShoo - ((millis() - ulGameTimerStartShoo) / 1000); // Calculate time.
   MethodWriteToLcdShoo(17, 3, MethodIntToString3Slin(m_iTimeLeftShoo)); // Update time.
 
   // Time is up, so perform logic for and go to endgame screen.
@@ -463,6 +463,7 @@ void MethodColisionDetectionSlin() {
   if(iEntityPositionsShoo[m_iCursorArrayPositionSlin] > 0) {
     // Player has hit a spaceship.
     if (iEntityPositionsShoo[m_iCursorArrayPositionSlin] == 1) {
+      Serial.println("Crashed into an spaceship");
       iSpaceShipCountSlin++;
       MethodWriteToLcdShoo(8, 3, MethodIntToString3Slin(iSpaceShipCountSlin)); // Update spaceship scoreboard.
       MethodBuzzerShoo(400, 100);
@@ -471,6 +472,7 @@ void MethodColisionDetectionSlin() {
     }
     // Player has hit an astroid.
     else if (iEntityPositionsShoo[m_iCursorArrayPositionSlin] == 2) {
+      Serial.println("Crashed into an astroid");
       iAstroidCountSlin++;
       MethodWriteToLcdShoo(2, 3, MethodIntToString3Slin(iAstroidCountSlin)); // Update asteroid scoreboard.
       MethodBuzzerShoo(500, 100);
